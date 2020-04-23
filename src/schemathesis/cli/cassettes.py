@@ -1,3 +1,4 @@
+import base64
 import sys
 import threading
 from contextlib import contextmanager
@@ -6,7 +7,10 @@ from typing import Any, Dict, Generator, List, Optional, cast
 
 import attr
 import click
+import requests
 import yaml
+from requests.cookies import RequestsCookieJar
+from requests.structures import CaseInsensitiveDict
 from yaml.serializer import Serializer
 
 from .. import constants
@@ -194,3 +198,26 @@ def worker(file_handle: click.utils.LazyFile, queue: Queue) -> None:
             dumper.close()  # type: ignore
             dumper.dispose()  # type: ignore
             break
+
+
+def replay(cassette: Dict[str, Any]) -> None:
+    """Replay saved interactions."""
+    session = requests.Session()
+    for interaction in cassette["http_interactions"]:
+        request = get_prepared_request(interaction["request"])
+        session.send(request)  # type: ignore
+
+
+def get_prepared_request(data: Dict[str, Any]) -> requests.PreparedRequest:
+    prepared = requests.PreparedRequest()
+    prepared.method = data["method"]
+    prepared.url = data["uri"]
+    # handle cookies!
+    prepared._cookies = RequestsCookieJar()  # type: ignore
+    if prepared.method != "GET":
+        # GET requests with payload?
+        prepared.body = base64.b64decode(data["body"]["base64_string"])
+    # handle multiple header values!
+    headers = [(key, value[0]) for key, value in data["headers"].items()]
+    prepared.headers = CaseInsensitiveDict(headers)
+    return prepared

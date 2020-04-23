@@ -5,6 +5,7 @@ from typing import Callable, Dict, Generator, Iterable, List, Optional, Tuple, U
 import click
 import hypothesis
 import requests
+import yaml
 
 from .. import checks as checks_module
 from .. import models, runner
@@ -269,3 +270,12 @@ def execute(
     for event in prepared_runner:
         for handler in handlers:
             handler.handle_event(context, event)
+
+
+@schemathesis.command(short_help="Replay requests from a saved cassette.")
+@click.argument("cassette", type=click.Path(exists=True))
+def replay(cassette: str) -> None:
+    # Convert to a dictionary and validate during Click validation?
+    with open(cassette) as fd:
+        data = yaml.safe_load(fd)
+    cassettes.replay(data)

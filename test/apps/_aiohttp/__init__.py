@@ -42,7 +42,7 @@ def create_app(endpoints: Tuple[str, ...] = ("success", "failure")) -> web.Appli
 
         @wraps(handler)
         async def inner(request: web.Request) -> web.Response:
-            if "Content-Type" in request.headers and not request.headers["Content-Type"].startswith("multipart/"):
+            if request.path != "/api/multipart":
                 await request.read()
             incoming_requests.append(request)
             return await handler(request)

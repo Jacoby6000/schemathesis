@@ -39,13 +39,21 @@ def endpoints(request):
     return endpoints
 
 
+@pytest.fixture
+def reset_app(_app, endpoints):
+    def inner():
+        _aiohttp.reset_app(_app, endpoints)
+
+    return inner
+
+
 @pytest.fixture()
-def app(_app, endpoints):
+def app(_app, reset_app):
     """Set up the global app for a specific test.
 
     NOTE. It might cause race conditions when `pytest-xdist` is used, but they have very low probability.
     """
-    _aiohttp.reset_app(_app, endpoints)
+    reset_app()
     return _app
 
 
@@ -80,6 +88,10 @@ def cli():
         @staticmethod
         def run(*args, **kwargs):
             return cli_runner.invoke(schemathesis.cli.run, args, **kwargs)
+
+        @staticmethod
+        def replay(*args, **kwargs):
+            return cli_runner.invoke(schemathesis.cli.replay, args, **kwargs)
 
         @staticmethod
         def main(*args, **kwargs):
